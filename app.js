@@ -22,12 +22,6 @@ const SIZE_WORDS = {
   big:   { m: 'великий',   n: 'велике',   f: 'велику' },
   small: { m: 'маленький', n: 'маленьке', f: 'маленьку' },
 };
-const MARKS = [
-  { id: 'С', text: 'сам' },
-  { id: 'П', text: 'з показом' },
-  { id: 'Ч', text: 'часткова' },
-  { id: 'Р', text: 'рука в руці' },
-];
 
 const SETTINGS_KEY = 'kp-settings';
 const LOG_KEY = 'kp-log';
@@ -43,7 +37,6 @@ const DEFAULTS = {
   colors: ['red', 'yellow', 'green', 'blue'],
   hint: 'off',          // off | delay | now
   assistLine: true,
-  marks: true,
   sound: false,
   reduceMotion: false,
 };
@@ -235,30 +228,10 @@ function finishTask() {
 
 function afterTask() {
   if (run.ex.free) return showReward();
-  if (settings.marks) return showMarks();
-  record('');
-}
-
-function record(mark) {
-  addLog({ t: Date.now(), ex: run.ex.id, lvl: run.level, mark, hint: run.hintUsed });
-  overlay.hidden = true;
+  addLog({ t: Date.now(), ex: run.ex.id, lvl: run.level, hint: run.hintUsed });
   run.index++;
   if (run.index >= run.total) showReward();
   else nextTask();
-}
-
-function showMarks() {
-  overlay.className = 'marks';
-  overlay.replaceChildren(h('div', 'marks-title', 'Як вийшло?'));
-  const row = h('div', 'marks-row');
-  for (const m of MARKS) {
-    const b = h('button', 'mark', `<b>${m.id}</b><span>${m.text}</span>`);
-    b.dataset.mark = m.id;
-    b.addEventListener('click', () => record(m.id));
-    row.append(b);
-  }
-  overlay.append(row);
-  overlay.hidden = false;
 }
 
 function showReward() {
@@ -803,7 +776,6 @@ function renderSettings() {
   p.append(h('h2', '', 'Допомога і вигляд'));
   p.append(seg('Підсвітка правильної цілі', [['off', 'Вимкнено'], ['delay', 'Через 5 с'], ['now', 'Одразу']], settings.hint, (v) => { settings.hint = v; }));
   p.append(onOff('Рядок для асистента', 'assistLine'));
-  p.append(onOff('Позначки С / П / Ч / Р після завдання', 'marks'));
   p.append(onOff('Тихий «дзинь» на правильну дію', 'sound'));
   p.append(onOff('Зменшити анімацію', 'reduceMotion'));
 
@@ -857,12 +829,11 @@ function renderJournal() {
   }
   for (const { date, rows } of days.values()) {
     const day = h('div', 'day');
-    const counts = MARKS.map((m) => `${m.id} ${rows.filter((r) => r.mark === m.id).length}`).join(' · ');
-    day.append(h('div', 'day-head', `${dayText(date)} <span>${rows.length} завд. · ${counts}</span>`));
-    const table = h('table', '', '<tr><th>Час</th><th>Вправа</th><th>Рівень</th><th>Позначка</th><th>Підсвітка</th></tr>');
+    day.append(h('div', 'day-head', `${dayText(date)} <span>${rows.length} завд.</span>`));
+    const table = h('table', '', '<tr><th>Час</th><th>Вправа</th><th>Рівень</th><th>Підсвітка</th></tr>');
     for (const r of rows) {
       const tr = h('tr');
-      for (const v of [timeText(new Date(r.t)), exTitle(r.ex), r.lvl, r.mark || '—', r.hint ? 'так' : 'ні']) {
+      for (const v of [timeText(new Date(r.t)), exTitle(r.ex), r.lvl, r.hint ? 'так' : 'ні']) {
         tr.append(h('td', '', String(v)));
       }
       table.append(tr);
@@ -876,10 +847,10 @@ function renderJournal() {
 }
 
 function downloadCsv() {
-  const lines = [['Дата', 'Час', 'Вправа', 'Рівень', 'Позначка', 'Підсвітка']];
+  const lines = [['Дата', 'Час', 'Вправа', 'Рівень', 'Підсвітка']];
   for (const r of readLog()) {
     const d = new Date(r.t);
-    lines.push([dayText(d), timeText(d), exTitle(r.ex), r.lvl, r.mark || '—', r.hint ? 'так' : 'ні']);
+    lines.push([dayText(d), timeText(d), exTitle(r.ex), r.lvl, r.hint ? 'так' : 'ні']);
   }
   const text = '﻿' + lines.map((l) => l.join(';')).join('\r\n');
   const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
