@@ -1,5 +1,5 @@
 // Офлайн-кеш. Після зміни файлів збільште VERSION.
-const VERSION = 'kp-v1';
+const VERSION = 'kp-v2';
 const FILES = [
   './',
   'index.html',
