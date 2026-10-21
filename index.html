@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#E9E6E0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Кольори і предмети">
+<title>Кольори і предмети</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<section id="menu" class="screen">
+  <header class="menu-head">
+    <span class="app-name">Кольори і предмети</span>
+    <button class="hold" id="gear" aria-label="Налаштування (утримуйте 2 с)"></button>
+  </header>
+  <div class="cards" id="cards"></div>
+</section>
+
+<section id="play" class="screen" hidden>
+  <header class="topbar">
+    <button class="hold" id="home" aria-label="Меню (утримуйте 2 с)"></button>
+    <div class="say" id="say"></div>
+    <div class="dots" id="dots"></div>
+    <button class="abtn" id="ok" hidden aria-label="Правильно">✓</button>
+    <button class="abtn" id="again" hidden aria-label="Ще раз">↺</button>
+  </header>
+  <main class="stage" id="stage"></main>
+</section>
+
+<section id="panel" class="screen scroll" hidden></section>
+
+<div id="overlay" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>
