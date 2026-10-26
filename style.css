@@ -122,9 +122,24 @@ svg { display: block; }
   overflow: hidden;
 }
 .no-say .say { visibility: hidden; }
-.dots { display: flex; gap: 5px; flex: none; }
-.dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
-.dots i.on { background: var(--muted); }
+.tokens {
+  flex: none;
+  height: calc(38px * var(--sc) + 8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: calc(8px * var(--sc));
+}
+.tokens i {
+  width: calc(36px * var(--sc));
+  height: calc(36px * var(--sc));
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--table);
+  padding: 2px;
+}
+.tokens i.on { border-color: #E3D3A4; background: #FBF4DD; }
+.tokens i.new svg { animation: fadein .6s ease forwards; opacity: 0; }
 .abtn {
   flex: none;
   width: calc(44px * var(--sc));
@@ -345,7 +360,7 @@ svg { display: block; }
   background: #fff;
 }
 .seg button.on { border-color: var(--ink); background: var(--ink); color: #fff; }
-.swatch { width: 52px; height: 44px; border-radius: 10px; border: 3px solid transparent; opacity: .3; }
+.swatch { width: 52px; height: 44px; border-radius: 10px; border: 3px solid var(--line); opacity: .3; }
 .swatch.on { opacity: 1; border-color: var(--ink); }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
 .btn.main { background: var(--ink); color: #fff; border-color: var(--ink); }

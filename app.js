@@ -7,8 +7,14 @@ const COLORS = {
   yellow: { hex: '#F2C200', m: 'жовтий',  n: 'жовте',  f: 'жовту',  name: 'жовтий' },
   green:  { hex: '#2E9E44', m: 'зелений', n: 'зелене', f: 'зелену', name: 'зелений' },
   blue:   { hex: '#1D5FD0', m: 'синій',   n: 'синє',   f: 'синю',   name: 'синій' },
+  orange: { hex: '#F07C1A', m: 'помаранчевий', n: 'помаранчеве', f: 'помаранчеву', name: 'помаранчевий' },
+  purple: { hex: '#7B3FB5', m: 'фіолетовий', n: 'фіолетове', f: 'фіолетову', name: 'фіолетовий' },
+  pink:   { hex: '#F06BA8', m: 'рожевий', n: 'рожеве', f: 'рожеву', name: 'рожевий' },
+  brown:  { hex: '#7A4A26', m: 'коричневий', n: 'коричневе', f: 'коричневу', name: 'коричневий' },
+  white:  { hex: '#FFFFFF', m: 'білий', n: 'біле', f: 'білу', name: 'білий' },
+  black:  { hex: '#222222', m: 'чорний', n: 'чорне', f: 'чорну', name: 'чорний' },
 };
-const COLOR_ORDER = ['red', 'yellow', 'green', 'blue'];
+const COLOR_ORDER = ['red', 'yellow', 'green', 'blue', 'orange', 'purple', 'pink', 'brown', 'white', 'black'];
 
 // g — рід, acc — знахідний відмінок («поклади кубик / ложку»)
 const KINDS = {
@@ -16,6 +22,11 @@ const KINDS = {
   ball:  { g: 'm', acc: "м'яч" },
   ring:  { g: 'n', acc: 'кільце' },
   spoon: { g: 'f', acc: 'ложку' },
+  cup:    { g: 'f', acc: 'чашку' },
+  car:    { g: 'f', acc: 'машинку' },
+  pencil: { g: 'm', acc: 'олівець' },
+  button: { g: 'm', acc: 'ґудзик' },
+  hat:    { g: 'f', acc: 'шапку' },
 };
 const KIND_LIST = Object.keys(KINDS);
 const SIZE_WORDS = {
@@ -66,6 +77,8 @@ function shade(hex, f) {
     Math.round(f < 0 ? c * (1 + f) : c + (255 - c) * f));
   return '#' + ch.map((c) => c.toString(16).padStart(2, '0')).join('');
 }
+// Контур предмета; білому потрібен темніший, щоб його було видно на світлому фоні
+const edge = (c) => (c === '#FFFFFF' ? '#8F8A82' : shade(c, -0.3));
 const itemName = (kind, color) => `${COLORS[color][KINDS[kind].g]} ${KINDS[kind].acc}`;
 
 /* ================= Збереження ================= */
@@ -102,7 +115,7 @@ function applySettings() {
 // Розмір одиниці: бажаний масштаб, але так, щоб сцена вмістилася в екран.
 function fit() {
   const sc = settings.scale / 100;
-  const topbar = 44 * sc + 16;
+  const topbar = 44 * sc + 16 + 38 * sc + 8; // верхня панель + дошка жетонів
   const u = Math.min(BASE_U * sc, (innerWidth - 16) / FIT_W, (innerHeight - topbar - 16) / FIT_H);
   document.documentElement.style.setProperty('--u', u.toFixed(2) + 'px');
 }
@@ -115,27 +128,51 @@ const g = (inner, x, y, s) => `<g transform="translate(${x} ${y}) scale(${s})">$
 // Предмети — viewBox 0 0 100 100
 const DRAW = {
   cube: (c) => {
-    const s = shade(c, -0.3);
+    const s = edge(c);
     return `<g stroke="${s}" stroke-width="2" stroke-linejoin="round">
       <path d="M50 10 L88 30 L50 50 L12 30 Z" fill="${shade(c, 0.3)}"/>
       <path d="M12 30 L50 50 L50 92 L12 72 Z" fill="${c}"/>
       <path d="M88 30 L50 50 L50 92 L88 72 Z" fill="${shade(c, -0.15)}"/></g>`;
   },
-  ball: (c) => `<circle cx="50" cy="52" r="40" fill="${c}" stroke="${shade(c, -0.3)}" stroke-width="2"/>
+  ball: (c) => `<circle cx="50" cy="52" r="40" fill="${c}" stroke="${edge(c)}" stroke-width="2"/>
       <ellipse cx="36" cy="37" rx="12" ry="8" fill="#fff" opacity=".35"/>`,
-  ring: (c) => `<rect x="6" y="32" width="88" height="40" rx="20" fill="${c}" stroke="${shade(c, -0.3)}" stroke-width="2"/>
+  ring: (c) => `<rect x="6" y="32" width="88" height="40" rx="20" fill="${c}" stroke="${edge(c)}" stroke-width="2"/>
       <rect x="18" y="37" width="64" height="8" rx="4" fill="#fff" opacity=".3"/>`,
-  spoon: (c) => `<g transform="rotate(-40 50 50)" stroke="${shade(c, -0.3)}" stroke-width="2">
+  spoon: (c) => `<g transform="rotate(-40 50 50)" stroke="${edge(c)}" stroke-width="2">
       <rect x="45" y="42" width="10" height="54" rx="5" fill="${c}"/>
       <ellipse cx="50" cy="27" rx="19" ry="24" fill="${c}"/>
       <ellipse cx="46" cy="22" rx="8" ry="11" fill="#fff" opacity=".28" stroke="none"/></g>`,
+  cup: (c) => `<g stroke="${edge(c)}" stroke-width="2" stroke-linejoin="round">
+      <path d="M71 42 Q90 42 88 57 Q86 71 68 71" fill="none" stroke-width="12"/>
+      <path d="M71 42 Q90 42 88 57 Q86 71 68 71" fill="none" stroke="${c}" stroke-width="8"/>
+      <path d="M20 30 H74 L69 82 Q68 89 61 89 H33 Q26 89 25 82 Z" fill="${c}"/>
+      <ellipse cx="47" cy="30" rx="27" ry="7" fill="${shade(c, -0.15)}"/></g>`,
+  car: (c) => `<g stroke="${edge(c)}" stroke-width="2" stroke-linejoin="round">
+      <path d="M24 46 L35 26 H65 L78 46 Z" fill="${c}"/>
+      <rect x="6" y="44" width="88" height="28" rx="9" fill="${c}"/>
+      <path d="M33 44 L40 31 H48 V44 Z M53 44 V31 H62 L70 44 Z" fill="#fff" opacity=".6"/>
+      <circle cx="27" cy="74" r="11" fill="#444"/><circle cx="73" cy="74" r="11" fill="#444"/></g>
+      <circle cx="27" cy="74" r="4" fill="#BBB"/><circle cx="73" cy="74" r="4" fill="#BBB"/>`,
+  pencil: (c) => `<g transform="rotate(-40 50 50)" stroke="${edge(c)}" stroke-width="2" stroke-linejoin="round">
+      <rect x="41" y="8" width="18" height="10" rx="3" fill="${shade(c, -0.2)}"/>
+      <rect x="41" y="17" width="18" height="56" fill="${c}"/>
+      <path d="M41 73 H59 L50 94 Z" fill="#E8C9A0" stroke="#B89C78"/>
+      <path d="M46.5 86 H53.5 L50 94 Z" fill="#444" stroke="none"/></g>`,
+  button: (c) => `<circle cx="50" cy="50" r="40" fill="${c}" stroke="${edge(c)}" stroke-width="2"/>
+      <circle cx="50" cy="50" r="29" fill="none" stroke="${shade(c, -0.15)}" stroke-width="3"/>
+      <g fill="${shade(c, -0.4)}"><circle cx="41" cy="41" r="5"/><circle cx="59" cy="41" r="5"/>
+      <circle cx="41" cy="59" r="5"/><circle cx="59" cy="59" r="5"/></g>`,
+  hat: (c) => `<g stroke="${edge(c)}" stroke-width="2" stroke-linejoin="round">
+      <path d="M16 68 Q16 26 50 26 Q84 26 84 68 Z" fill="${c}"/>
+      <rect x="11" y="62" width="78" height="20" rx="7" fill="${shade(c, -0.15)}"/>
+      <circle cx="50" cy="20" r="10" fill="${shade(c, 0.25)}"/></g>`,
 };
 
 // Коробка — viewBox 0 0 120 96. Задня частина (отвір) і передня стінка окремо,
 // щоб предмети «лягали» всередину.
 const BOX_BACK = `<path d="M6 20 L114 20 L106 42 L14 42 Z" fill="#8C6B46" stroke="#76583A" stroke-width="2" stroke-linejoin="round"/>`;
 function boxFront(label, color) {
-  const tag = color ? `<rect x="38" y="54" width="44" height="26" rx="5" fill="${COLORS[color].hex}" stroke="${shade(COLORS[color].hex, -0.3)}" stroke-width="2"/>` : '';
+  const tag = color ? `<rect x="38" y="54" width="44" height="26" rx="5" fill="${COLORS[color].hex}" stroke="${edge(COLORS[color].hex)}" stroke-width="2"/>` : '';
   return `<path d="M14 42 L106 42 L110 94 L10 94 Z" fill="#D2B48C" stroke="#B8976A" stroke-width="2" stroke-linejoin="round"/>${tag}`;
 }
 // Тарілочка — viewBox 0 0 260 150
@@ -147,7 +184,7 @@ const PEG = `<rect x="45" y="6" width="10" height="104" rx="5" fill="#B8895C"/>
 
 function ringPiece(c, w) {
   const W = w * 10;
-  return svg(`0 0 ${W} 36`, `<rect x="1" y="1" width="${W - 2}" height="34" rx="17" fill="${c}" stroke="${shade(c, -0.3)}" stroke-width="2"/>
+  return svg(`0 0 ${W} 36`, `<rect x="1" y="1" width="${W - 2}" height="34" rx="17" fill="${c}" stroke="${edge(c)}" stroke-width="2"/>
     <rect x="${W * 0.15}" y="6" width="${W * 0.7}" height="6" rx="3" fill="#fff" opacity=".3"/>`);
 }
 
@@ -205,15 +242,16 @@ function nextTask() {
   const bottom = h('div', 'zone bottom');
   stage.replaceChildren(top, bottom);
   run.task = run.ex.build(run.level, { top, bottom });
-  renderDots();
+  renderTokens();
   busy = false;
 }
 
-function renderDots() {
-  const dots = $('#dots');
-  dots.replaceChildren();
-  if (run.ex.free) return;
-  for (let i = 0; i < run.total; i++) dots.append(h('i', i < run.index ? 'on' : ''));
+// Дошка жетонів: за кожне завдання заповнюється один кружечок
+function renderTokens() {
+  const tokens = $('#tokens');
+  tokens.replaceChildren();
+  tokens.hidden = Boolean(run.ex.free);
+  for (let i = 0; i < run.total; i++) tokens.append(h('i', i < run.index ? 'on' : '', i < run.index ? STAR : ''));
 }
 
 const say = (text) => { sayEl.textContent = 'Скажіть: ' + text; };
@@ -230,8 +268,9 @@ function afterTask() {
   if (run.ex.free) return showReward();
   addLog({ t: Date.now(), ex: run.ex.id, lvl: run.level, hint: run.hintUsed });
   run.index++;
-  if (run.index >= run.total) showReward();
-  else nextTask();
+  renderTokens();
+  $('#tokens').children[run.index - 1].classList.add('new');
+  setTimeout(run.index >= run.total ? showReward : nextTask, 900);
 }
 
 function showReward() {
@@ -460,7 +499,7 @@ function buildPut(level, { top, bottom }) {
 
 // 2. Такий самий колір
 function buildColor(level, { top, bottom }) {
-  const cols = enabledColors().slice(0, level + 1);
+  const cols = shuffle(enabledColors()).slice(0, level + 1);
   const count = Math.min(settings.options, cols.length);
   const color = pick(cols);
   const others = shuffle(cols.filter((c) => c !== color)).slice(0, count - 1);
@@ -513,7 +552,7 @@ function buildSort(level, { top, bottom }) {
 
 // 4. Один — багато
 function buildCount(level, { top, bottom }) {
-  const kind = level === 1 ? 'ball' : pick(['cube', 'ring', 'spoon']);
+  const kind = level === 1 ? 'ball' : pick(KIND_LIST.filter((k) => k !== 'ball'));
   const color = pick(enabledColors());
   const many = 5 + rnd(4);
   const fill = (plate, n, isMovable) => {
@@ -876,6 +915,8 @@ function holdButton(el, icon, action) {
   });
   for (const t of ['pointerup', 'pointercancel', 'pointerleave']) el.addEventListener(t, cancel);
 }
+
+const STAR = svg('0 0 100 100', '<path d="M50 8 L62 36 L92 38 L69 58 L76 88 L50 72 L24 88 L31 58 L8 38 L38 36 Z" fill="#E8B830" stroke="#C99A1C" stroke-width="4" stroke-linejoin="round"/>');
 
 const GEAR = `<g fill="none" stroke="#5E5A54" stroke-width="2.4"><circle cx="20" cy="20" r="4.5"/>
   <path d="M20 9v3M20 28v3M9 20h3M28 20h3M12.2 12.2l2.1 2.1M25.7 25.7l2.1 2.1M12.2 27.8l2.1-2.1M25.7 14.3l2.1-2.1"/></g>`;
