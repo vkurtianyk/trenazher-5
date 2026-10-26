@@ -19,9 +19,18 @@
 <section id="menu" class="screen">
   <header class="menu-head">
     <span class="app-name">Тренажер</span>
+    <button class="small-btn" id="to-schedule">Розклад</button>
     <button class="hold" id="gear" aria-label="Налаштування (утримуйте 2 с)"></button>
   </header>
   <div class="cards" id="cards"></div>
+</section>
+
+<section id="schedule" class="screen" hidden>
+  <header class="menu-head">
+    <button class="hold" id="sched-home" aria-label="Меню (утримуйте 2 с)"></button>
+    <button class="small-btn" id="sched-restart" hidden>Почати знову</button>
+  </header>
+  <div class="sched" id="sched"></div>
 </section>
 
 <section id="play" class="screen" hidden>

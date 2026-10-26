@@ -100,6 +100,55 @@ svg { display: block; }
   .card.free { grid-column: 1 / span 2; grid-row: 4; }
 }
 
+.menu-head .app-name { flex: 1; }
+.small-btn {
+  border: 2px solid var(--line);
+  background: var(--table);
+  border-radius: 10px;
+  padding: 6px 14px;
+  margin-right: 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* ---------- Розклад ---------- */
+#schedule { display: flex; flex-direction: column; }
+.sched {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2vmin;
+  padding: 16px;
+}
+.sched-card {
+  position: relative;
+  width: min(26vw, 42vh);
+  aspect-ratio: 1;
+  border: 5px solid transparent;
+  border-radius: 24px;
+  background: var(--table);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  gap: 4px;
+}
+.sched-card svg { flex: 1; min-height: 0; width: 92%; }
+.sched-card small { font-size: 12px; color: var(--muted); }
+.sched-card.now { border-color: #9DBCE6; background: #fff; }
+.sched-card.done { opacity: .5; }
+.sched-card .tick { position: absolute; top: 6%; right: 6%; width: 26%; }
+.sched-card .tick svg { width: 100%; }
+.sched-arrow { width: 5vmin; flex: none; }
+@media (orientation: portrait) {
+  .sched { flex-direction: column; }
+  .sched-card { width: min(26vh, 70vw); }
+  .sched-arrow { transform: rotate(90deg); }
+}
+
 /* ---------- Вправа ---------- */
 #play { display: flex; flex-direction: column; }
 .topbar {

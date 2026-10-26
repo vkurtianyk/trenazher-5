@@ -27,6 +27,8 @@ const KINDS = {
   pencil: { g: 'm', acc: 'олівець' },
   button: { g: 'm', acc: 'ґудзик' },
   hat:    { g: 'f', acc: 'шапку' },
+  apple:  { g: 'n', acc: 'яблуко' },
+  sock:   { g: 'f', acc: 'шкарпетку' },
 };
 const KIND_LIST = Object.keys(KINDS);
 const SIZE_WORDS = {
@@ -42,7 +44,8 @@ const HOLD_MS = 2000;
 
 const DEFAULTS = {
   scale: 100,
-  tasks: 4,
+  tasks: 5,
+  schedule: ['color', 'sort', 'pyramid'], // розклад на початку; '' — порожній крок
   levels: { put: 1, color: 1, sort: 1, count: 1, size: 1, give: 1, pyramid: 1 },
   options: 4,
   colors: ['red', 'yellow', 'green', 'blue'],
@@ -86,7 +89,7 @@ const itemName = (kind, color) => `${COLORS[color][KINDS[kind].g]} ${KINDS[kind]
 function loadSettings() {
   const raw = localStorage.getItem(SETTINGS_KEY);
   const s = raw ? JSON.parse(raw) : {};
-  return { ...DEFAULTS, ...s, levels: { ...DEFAULTS.levels, ...s.levels } };
+  return { ...DEFAULTS, ...s, levels: { ...DEFAULTS.levels, ...s.levels }, schedule: [...(s.schedule || DEFAULTS.schedule)] };
 }
 let settings = loadSettings();
 
@@ -166,6 +169,14 @@ const DRAW = {
       <path d="M16 68 Q16 26 50 26 Q84 26 84 68 Z" fill="${c}"/>
       <rect x="11" y="62" width="78" height="20" rx="7" fill="${shade(c, -0.15)}"/>
       <circle cx="50" cy="20" r="10" fill="${shade(c, 0.25)}"/></g>`,
+  apple: (c) => `<path d="M50 24 Q55 13 62 8" fill="none" stroke="#6B4A2B" stroke-width="5" stroke-linecap="round"/>
+      <ellipse cx="66" cy="18" rx="11" ry="6" transform="rotate(-25 66 18)" fill="#4C9A3A" stroke="#3B7A2D" stroke-width="2"/>
+      <path d="M50 30 C32 16 8 28 13 56 C18 84 40 94 50 86 C60 94 82 84 87 56 C92 28 68 16 50 30 Z" fill="${c}" stroke="${edge(c)}" stroke-width="2" stroke-linejoin="round"/>
+      <ellipse cx="32" cy="44" rx="7" ry="11" fill="#fff" opacity=".3"/>`,
+  sock: (c) => `<g stroke="${edge(c)}" stroke-width="2" stroke-linejoin="round">
+      <path d="M32 20 H62 V58 L84 70 Q96 78 89 89 Q83 97 71 92 L38 76 Q30 72 32 62 Z" fill="${c}"/>
+      <rect x="30" y="8" width="34" height="16" rx="4" fill="${shade(c, -0.15)}"/>
+      <path d="M71 92 Q83 97 89 89 Q96 78 84 70 L78 67 Q70 80 71 92 Z" fill="${shade(c, -0.15)}"/></g>`,
 };
 
 // Коробка — viewBox 0 0 120 96. Задня частина (отвір) і передня стінка окремо,
@@ -226,8 +237,8 @@ const overlay = $('#overlay');
 let run = null;   // { ex, level, index, total, hintUsed, task }
 let busy = false; // блокує дотики під час руху та переходів
 
-function startRun(ex) {
-  run = { ex, level: settings.levels[ex.id], index: 0, total: ex.free ? 1 : settings.tasks };
+function startRun(ex, fromSchedule = false) {
+  run = { ex, fromSchedule, level: settings.levels[ex.id], index: 0, total: ex.free ? 1 : settings.tasks };
   overlay.hidden = true;
   show('play');
   nextTask();
@@ -294,13 +305,20 @@ function showReward() {
      <path d="M28 52 L44 67 L73 36" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>`)));
   const actions = h('div', 'reward-actions');
   actions.hidden = true;
-  const again = h('button', '', 'Ще раз');
-  again.id = 'reward-again';
-  again.addEventListener('click', () => startRun(run.ex));
-  const menu = h('button', '', 'Меню');
-  menu.id = 'reward-menu';
-  menu.addEventListener('click', showMenu);
-  actions.append(again, menu);
+  if (run.fromSchedule) {
+    const next = h('button', '', 'Далі');
+    next.id = 'reward-next';
+    next.addEventListener('click', () => { schedStep++; showSchedule(); });
+    actions.append(next);
+  } else {
+    const again = h('button', '', 'Ще раз');
+    again.id = 'reward-again';
+    again.addEventListener('click', () => startRun(run.ex));
+    const menu = h('button', '', 'Меню');
+    menu.id = 'reward-menu';
+    menu.addEventListener('click', showMenu);
+    actions.append(again, menu);
+  }
   overlay.append(actions);
   overlay.hidden = false;
   setTimeout(() => { actions.hidden = false; }, settings.reduceMotion ? 800 : 3800);
@@ -743,7 +761,32 @@ const exTitle = (id) => ALL.find((e) => e.id === id).title;
 /* ================= Екрани ================= */
 
 function show(id) {
-  for (const s of ['menu', 'play', 'panel']) $('#' + s).hidden = s !== id;
+  for (const s of ['menu', 'schedule', 'play', 'panel']) $('#' + s).hidden = s !== id;
+}
+
+const scheduleSteps = () => settings.schedule.filter(Boolean).map((id) => ALL.find((e) => e.id === id));
+const iconSvg = (ex) => svg(ex.free ? '0 0 200 130' : '0 0 200 140', ICONS[ex.id]);
+const CHECK = svg('0 0 100 100', `<circle cx="50" cy="50" r="46" fill="#3FA34D"/>
+  <path d="M28 52 L44 67 L73 36" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>`);
+
+// Розклад: «спочатку → потім → потім», як паперові картки
+let schedStep = 0;
+function showSchedule() {
+  clearHint();
+  overlay.hidden = true;
+  const row = $('#sched');
+  row.replaceChildren();
+  scheduleSteps().forEach((ex, i) => {
+    if (i) row.append(h('div', 'sched-arrow', svg('0 0 40 40', '<path d="M8 20 H30 M22 12 L30 20 L22 28" fill="none" stroke="#B5AFA6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>')));
+    const state = i < schedStep ? 'done' : i === schedStep ? 'now' : '';
+    const card = h('button', `sched-card ${state}`, iconSvg(ex) + `<small>${ex.title}</small>`);
+    if (state === 'done') card.append(h('div', 'tick', CHECK));
+    card.dataset.ex = ex.id;
+    card.addEventListener('click', () => { if (i === schedStep) startRun(ex, true); });
+    row.append(card);
+  });
+  $('#sched-restart').hidden = schedStep < scheduleSteps().length;
+  show('schedule');
 }
 
 function showMenu() {
@@ -753,12 +796,13 @@ function showMenu() {
   cards.replaceChildren();
   ALL.forEach((ex, i) => {
     const card = h('button', ex.free ? 'card free' : 'card',
-      svg(ex.free ? '0 0 200 130' : '0 0 200 140', ICONS[ex.id])
+      iconSvg(ex)
       + `<small>${ex.free ? '' : i + 1 + ' · '}${ex.title} · рівень ${settings.levels[ex.id]}</small>`);
     card.dataset.ex = ex.id;
     card.addEventListener('click', () => startRun(ex));
     cards.append(card);
   });
+  $('#to-schedule').hidden = !scheduleSteps().length;
   show('menu');
 }
 
@@ -785,6 +829,15 @@ function renderSettings() {
   p.append(h('h1', '', 'Налаштування'));
   p.append(seg('Розмір усього', [100, 130, 160, 200].map((v) => [v, v + ' %']), settings.scale, (v) => { settings.scale = v; }));
   p.append(seg('Завдань у підході', [3, 4, 5, 6, 7, 8, 9, 10].map((v) => [v, String(v)]), settings.tasks, (v) => { settings.tasks = v; }));
+
+  p.append(h('h2', '', 'Розклад на початку'));
+  p.append(h('p', 'note', 'Картки «спочатку → потім», які дитина бачить перед заняттям. Порожні кроки не показуються.'));
+  ['Спочатку', 'Потім', 'Потім'].forEach((label, i) => {
+    p.append(seg(label, [['', '—'], ...ALL.map((e) => [e.id, e.title])], settings.schedule[i] || '', (v) => {
+      settings.schedule[i] = v;
+      schedStep = 0;
+    }));
+  });
 
   p.append(h('h2', '', 'Рівень складності'));
   for (const ex of ALL) {
@@ -923,7 +976,10 @@ const GEAR = `<g fill="none" stroke="#5E5A54" stroke-width="2.4"><circle cx="20"
 const HOME = `<path d="M12 20 L20 12 L28 20 M14.5 18v9h11v-9" fill="none" stroke="#5E5A54" stroke-width="2.4" stroke-linejoin="round"/>`;
 
 holdButton($('#gear'), GEAR, renderSettings);
-holdButton($('#home'), HOME, showMenu);
+holdButton($('#home'), HOME, () => (run.fromSchedule ? showSchedule() : showMenu()));
+holdButton($('#sched-home'), HOME, showMenu);
+$('#to-schedule').addEventListener('click', () => { schedStep = 0; showSchedule(); });
+$('#sched-restart').addEventListener('click', () => { schedStep = 0; showSchedule(); });
 
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 document.addEventListener('gesturestart', (e) => e.preventDefault());
@@ -943,4 +999,5 @@ addEventListener('resize', fit);
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 applySettings();
-showMenu();
+if (scheduleSteps().length) showSchedule();
+else showMenu();
